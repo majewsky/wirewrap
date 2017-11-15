@@ -18,5 +18,51 @@
 
 package main
 
+import (
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"strings"
+
+	"github.com/majewsky/wirewrap/pkg/config"
+)
+
 func main() {
+	err := run()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	if len(os.Args) != 2 {
+		return errors.New("usage: wirewrap <config-file>")
+	}
+
+	buf, err := ioutil.ReadFile(os.Args[0])
+	if err != nil {
+		return err
+	}
+
+	cfg, errs := config.FromString(buf)
+	if len(errs) != 0 {
+		return multiError(errs)
+	}
+
+	//TODO
+	fmt.Printf("config = %#v\n", cfg)
+	return nil
+}
+
+//multiError is an error containing multiple errors.
+type multiError []error
+
+func (e multiError) Error() string {
+	s := make([]string, len(e))
+	for idx, err := range e {
+		s[idx] = err.Error()
+	}
+	return strings.Join(s, "\n")
 }

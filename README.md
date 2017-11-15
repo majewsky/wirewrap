@@ -20,37 +20,49 @@ Run `make install` to install the binary. The conventional `DESTDIR` and `PREFIX
 
 ## Usage
 
-### Configuration file format
-
 Wirewrap requires a configuration file in the format accepted by `wg` (refer to
-[`man 8 wg`](http://manpages.ubuntu.com/manpages/zesty/man8/wg.8.html) for details), except that one `[Peer]`
-section must have multiple `PublicKey` and `Endpoint` settings like so:
+[`man 8 wg-quick`](http://manpages.ubuntu.com/manpages/zesty/man8/wg-quick.8.html) for details), except for the
+differences outlined below. When the configuration file is complete, invoke Wirewrap as
+
+```
+$ wirewrap <config-file>
+```
+
+### Configuration file format: Extensions for clients
+
+The `[Peer]` sections can have an additional field `WirewrapID`.
 
 ```ini
 [Peer]
+WirewrapID = first-vpn
 PublicKey = yQ2QcbZ/Zjd5yNi4IP5CluBpamBgSGRTc4FLT5jiA3A=
 Endpoint = vpn1.example.org:12345
+AllowedIPs = 0.0.0.0/0
+
+[Peer]
+WirewrapID = first-vpn
 PublicKey = zKx5ob+KIxxOVHnfMVjwolR5y48tu0RRPJ/b2ty/YgY=
 Endpoint = vpn2.example.org:12345
+AllowedIPs = 0.0.0.0/0
+
+[Peer]
+WirewrapID = first-vpn
 PublicKey = bZBwUF2kNWcg1jMwepTA91bpfI7rP2bI+1UWTIDOqDk=
 Endpoint = vpn3.example.org:12345
 AllowedIPs = 0.0.0.0/0
 ```
 
-Each endpoint corresponds to the public key directly above it. There must be an endpoint for each public key, and vice
-versa. This `[Peer]` section contains all the servers that a client can speak to, but it is also required in the
-configuration of the Wirewrap servers because they need to know which other servers are participating in the leader
-election.
+For each unique value of `WirewrapID`, Wirewrap will select and use only one of the peers with this ID at a time,
+switching over to the next one when the current one fails.
 
-In the `[Interface]` section, the `PreUp`, `PreDown`, `PostUp` and `PostDown` keys are recognized and have the same
-meaning as for `wg-quick` (see [`man 8 wg-quick`](http://manpages.ubuntu.com/manpages/zesty/man8/wg-quick.8.html) for
-details).
+### Configuration file format: Extensions for servers
 
-Finally, on the servers, a section `[Wirewrap]` is required that references any nonzero number of client endpoints of an
-[etcd cluster](https://coreos.com/etcd/docs/latest/) like so:
+On the servers that correspond to the `[Peer]` sections from above, an additional section `[Wirewrap]` is required that
+references any nonzero number of client endpoints of an [etcd cluster](https://coreos.com/etcd/docs/latest/) like so:
 
 ```ini
 [Wirewrap]
+ID = first-vpn
 Etcd = vpn1.example.org:2379
 Etcd = vpn2.example.org:2379
 Etcd = vpn3.example.org:2379
@@ -59,11 +71,7 @@ Etcd = etcd2.example.org:2379
 LeaderKey = /wirewrap/leader
 ```
 
+The `ID` field is an arbitrary string, but must be the same across all servers and clients.
+
 The optional `LeaderKey` (default value as shown above) must be the same across all servers of one VPN, but unique
 among VPNs utilizing the same etcd cluster.
-
-### Invocation
-
-Run Wirewrap as `wirewrap <config-file>`. This invocation is the same for clients and servers; servers recognize their
-role by finding the public key corresponding to their private key in the multi-keyed `[Peer]` section, and by the
-presence of the `[Wirewrap]` section.
