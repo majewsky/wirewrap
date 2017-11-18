@@ -94,7 +94,7 @@ LINE:
 			//check closing section
 			endCurrentSection(lineNo)
 			//start new section
-			switch match[0] {
+			switch match[1] {
 			case "Interface":
 				currentSection = interfaceSection
 				continue LINE
