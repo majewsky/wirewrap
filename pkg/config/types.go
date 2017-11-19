@@ -47,7 +47,7 @@ func AddressFromString(text string) (Address, error) {
 func IPFromString(text string) (net.IP, error) {
 	ip := net.ParseIP(text)
 	if ip == nil {
-		return nil, fmt.Errorf("not an IP address: %q", ip)
+		return nil, fmt.Errorf("invalid IP address: %s", text)
 	}
 	return ip, nil
 }

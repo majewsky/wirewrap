@@ -42,7 +42,7 @@ var rxSectionHead = regexp.MustCompile(`^\[\s*(\w+)\s*\]$`)
 func FromString(text []byte) (cfg Config, errs []error) {
 	report := func(lineNo int, err error) {
 		if err != nil {
-			errs = append(errs, fmt.Errorf("error in line %d: %s", lineNo, err.Error()))
+			errs = append(errs, fmt.Errorf("error in line %d: %s", lineNo+1, err.Error()))
 		}
 	}
 
@@ -135,6 +135,9 @@ LINE:
 		case "Interface/PrivateKey", "Peer/PublicKey":
 			requiredKey, err = KeyFromString(value)
 			report(lineNo, err)
+			if requiredKey == nil {
+				requiredKey = &Key{} // don't report PrivateKey as missing
+			}
 
 		case "Interface/ListenPort":
 			i, err := strconv.ParseUint(value, 10, 16)
