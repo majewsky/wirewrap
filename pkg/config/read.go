@@ -45,9 +45,6 @@ func FromString(text []byte) (cfg Config, errs []error) {
 		}
 	}
 
-	//non-zero default values
-	cfg.Wirewrap.LeaderKey = "/wirewrap/leader"
-
 	//initial state
 	currentSection := noSection
 	var requiredKey *Key
@@ -215,8 +212,6 @@ func FromString(text []byte) (cfg Config, errs []error) {
 
 		case "Wirewrap/ID":
 			cfg.Wirewrap.ID = value
-		case "Wirewrap/LeaderKey":
-			cfg.Wirewrap.LeaderKey = value
 
 		case "Wirewrap/Etcd":
 			foreachCommaSeparated(value, func(text string) {

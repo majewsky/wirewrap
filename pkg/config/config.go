@@ -55,5 +55,4 @@ type PeerSection struct {
 type WirewrapSection struct {
 	ID            string
 	EtcdEndpoints []Endpoint
-	LeaderKey     string
 }

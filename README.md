@@ -68,10 +68,7 @@ Etcd = vpn2.example.org:2379
 Etcd = vpn3.example.org:2379
 Etcd = etcd1.example.org:2379
 Etcd = etcd2.example.org:2379
-LeaderKey = /wirewrap/leader
 ```
 
-The `ID` field is an arbitrary string, but must be the same across all servers and clients.
-
-The optional `LeaderKey` (default value as shown above) must be the same across all servers of one VPN, but unique
-among VPNs utilizing the same etcd cluster.
+The `ID` field is an arbitrary string, but must be the same across all servers and clients, but different for each VPN
+utilizing the same etcd cluster.

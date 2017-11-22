@@ -37,9 +37,7 @@ var minimalPeerSection = PeerSection{
 	PublicKey:  makeKeyDecoded(2),
 	AllowedIPs: []Address{makeAddressFromCIDR("1.2.3.4/32")},
 }
-var minimalWirewrapSection = WirewrapSection{
-	LeaderKey: "/wirewrap/leader",
-}
+var minimalWirewrapSection = WirewrapSection{}
 
 func TestReadMinimal(t *testing.T) {
 	expectParseSuccess(t, join(
@@ -496,8 +494,7 @@ func TestReadWirewrapIDAndEtcdEndpoints(t *testing.T) {
 		Interface: minimalInterfaceSection,
 		Peers:     []PeerSection{minimalPeerSection},
 		Wirewrap: WirewrapSection{
-			ID:        "foo bar",
-			LeaderKey: "/wirewrap/leader",
+			ID: "foo bar",
 			EtcdEndpoints: []Endpoint{
 				Endpoint{Host: "11.22.33.44", Port: 5678},
 				Endpoint{Host: "1234::1", Port: 567},
