@@ -31,7 +31,7 @@ type Config struct {
 type InterfaceSection struct {
 	PrivateKey Key
 	ListenPort *uint16 //nil = choose randomly
-	FwMark     *uint32 //nil = off
+	FwMark     uint32  //0 = off
 	Addresses  []Address
 	DNSServers []net.IP
 	MTU        uint

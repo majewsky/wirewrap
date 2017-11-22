@@ -8,6 +8,8 @@ GO_LDFLAGS    = -s -w
 PKGS := $(shell go list ./... | grep -vw vendor)
 # which packages to test with `go test`?
 TESTPKGS := $(shell go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' $(PKG)/pkg/...)
+# which packages to measure coverage for?
+COVERPKGS := $(shell go list $(PKG)/pkg/... | grep -vw vendor)
 
 all: FORCE
 	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)'
@@ -35,7 +37,9 @@ golint:
 
 gotest:
 	@echo "+ go test"
-	@go test $(TESTPKGS)
+	@go test -coverprofile=build/cover.out -covermode=count -coverpkg=$(subst $(space),$(comma),$(COVERPKGS)) $(TESTPKGS)
+	@echo "+ render build/cover.html"
+	@go tool cover -html build/cover.out -o build/cover.html
 
 vendor: FORCE
 	@# vendoring by https://github.com/holocm/golangvend

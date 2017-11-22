@@ -77,7 +77,7 @@ func EndpointFromString(text string) (Endpoint, error) {
 
 //String returns the "host:port" representation of this endpoint.
 func (e Endpoint) String() string {
-	return fmt.Sprintf("%s:%d", e.Host, e.Port)
+	return net.JoinHostPort(e.Host, strconv.FormatUint(uint64(e.Port), 10))
 }
 
 ////////////////////////////////////////////////////////////////////////////////

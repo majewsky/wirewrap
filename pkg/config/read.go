@@ -1,5 +1,4 @@
 /*******************************************************************************
-*
 * Copyright 2017 Stefan Majewsky <majewsky@gmx.net>
 *
 * This program is free software: you can redistribute it and/or modify it under
@@ -35,7 +34,7 @@ const (
 	wirewrapSection          = "Wirewrap"
 )
 
-var rxSectionHead = regexp.MustCompile(`^\[\s*(\w+)\s*\]$`)
+var rxSectionHead = regexp.MustCompile(`^\[\s*(.+?)\s*\]$`)
 
 //FromString parses the given configuration file contents.
 //The file is valid if an empty list of errors is returned.
@@ -72,13 +71,19 @@ func FromString(text []byte) (cfg Config, errs []error) {
 			if len(cfg.Peers[idx].AllowedIPs) == 0 {
 				report(lineNo, errors.New("expected AllowedIPs, found end of [Peer] section"))
 			}
+		case wirewrapSection:
+			if cfg.Wirewrap.ID == "" {
+				report(lineNo, errors.New("expected ID, found end of [Wirewrap] section"))
+			}
+			if len(cfg.Wirewrap.EtcdEndpoints) == 0 {
+				report(lineNo, errors.New("expected EtcdEndpoints, found end of [Wirewrap] section"))
+			}
 		}
 		requiredKey = nil
 		currentSection = noSection
 	}
 
 	maxLineNo := 0
-LINE:
 	for lineNo, line := range strings.Split(string(text), "\n") {
 		maxLineNo = lineNo //maxLineNo will have the last line number after the loop
 
@@ -97,22 +102,20 @@ LINE:
 			switch match[1] {
 			case "Interface":
 				currentSection = interfaceSection
-				continue LINE
 			case "Peer":
 				currentSection = peerSection
 				cfg.Peers = append(cfg.Peers, PeerSection{})
-				continue LINE
 			case "Wirewrap":
 				currentSection = wirewrapSection
-				continue LINE
 			default:
 				report(lineNo, fmt.Errorf("unknown section type: %s", match[0]))
-				continue LINE
 			}
+			continue //with next line
 		}
 
 		if currentSection == noSection {
 			report(lineNo, fmt.Errorf("missing section header before directive"))
+			continue
 		}
 
 		//parse "key = value" line format
@@ -124,7 +127,7 @@ LINE:
 		key := strings.TrimSpace(fields[0])
 		value := strings.TrimSpace(fields[1])
 		if value == "" {
-			report(lineNo, fmt.Errorf("missing value for field %s", line))
+			report(lineNo, fmt.Errorf("missing value for field %s", key))
 			continue
 		}
 
@@ -147,16 +150,11 @@ LINE:
 
 		case "Interface/FwMark":
 			if value == "off" {
-				cfg.Interface.FwMark = nil
+				cfg.Interface.FwMark = 0
 			} else {
 				i, err := strconv.ParseUint(value, 10, 32)
 				report(lineNo, err)
-				i32 := uint32(i)
-				if i32 == 0 {
-					cfg.Interface.FwMark = nil
-				} else {
-					cfg.Interface.FwMark = &i32
-				}
+				cfg.Interface.FwMark = uint32(i)
 			}
 
 		case "Interface/Address":
@@ -207,9 +205,13 @@ LINE:
 			})
 
 		case "Peer/PersistentKeepalive":
-			i, err := strconv.ParseUint(value, 10, 16)
-			report(lineNo, err)
-			cfg.Peers[peerIdx].PersistentKeepalive = uint16(i)
+			if value == "off" {
+				cfg.Interface.FwMark = 0
+			} else {
+				i, err := strconv.ParseUint(value, 10, 16)
+				report(lineNo, err)
+				cfg.Peers[peerIdx].PersistentKeepalive = uint16(i)
+			}
 
 		case "Wirewrap/ID":
 			cfg.Wirewrap.ID = value
@@ -223,6 +225,10 @@ LINE:
 				cfg.Wirewrap.EtcdEndpoints = append(cfg.Wirewrap.EtcdEndpoints, e)
 			})
 
+		default:
+			report(lineNo,
+				fmt.Errorf("unknown directive in %s section: %s", currentSection, key),
+			)
 		}
 	}
 	endCurrentSection(maxLineNo + 1)
