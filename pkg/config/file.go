@@ -1,5 +1,4 @@
 /*******************************************************************************
-*
 * Copyright 2017 Stefan Majewsky <majewsky@gmx.net>
 *
 * This program is free software: you can redistribute it and/or modify it under
@@ -16,40 +15,35 @@
 *
 *******************************************************************************/
 
-package main
+package config
 
 import (
-	"context"
-	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
-
-	"github.com/majewsky/wirewrap/pkg/config"
+	"io/ioutil"
+	"strings"
 )
 
-func main() {
-	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: wirewrap <config-file>")
-		os.Exit(1)
-	}
-
-	//read configuration file
-	cfg, err := config.FromFile(os.Args[1])
+//FromFile reads the given configuration file.
+func FromFile(path string) (Config, error) {
+	buf, err := ioutil.ReadFile(path)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		return Config{}, err
 	}
 
-	//standard incantation for responding to interrupt signals
-	ctx, cancel := context.WithCancel(context.Background())
-	sigc := make(chan os.Signal, 1)
-	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigc
-		cancel()
-	}()
+	cfg, errs := FromString(buf)
+	if len(errs) != 0 {
+		return Config{}, multiError(errs)
+	}
 
-	_ = cfg
-	<-ctx.Done()
+	return cfg, nil
+}
+
+//multiError is an error containing multiple errors.
+type multiError []error
+
+func (e multiError) Error() string {
+	s := make([]string, len(e))
+	for idx, err := range e {
+		s[idx] = err.Error()
+	}
+	return strings.Join(s, "\n")
 }
