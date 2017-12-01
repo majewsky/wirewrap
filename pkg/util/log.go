@@ -26,6 +26,11 @@ import (
 
 var isDebug = os.Getenv("WIREWRAP_DEBUG") == "1"
 
+//TerminateHook is called by LogFatal to terminate the application. It defaults to `os.Exit(1)`.
+var TerminateHook = func() {
+	os.Exit(1)
+}
+
 func init() {
 	log.SetOutput(os.Stdout)
 }
@@ -33,7 +38,7 @@ func init() {
 //LogFatal logs a fatal error and terminates the program.
 func LogFatal(msg string, args ...interface{}) {
 	doLog("FATAL: "+msg, args)
-	os.Exit(1)
+	TerminateHook()
 }
 
 //LogError logs a non-fatal error.

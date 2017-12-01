@@ -49,9 +49,21 @@ func main() {
 	signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigc
+		util.LogInfo("Received interrupt, shutting down...")
 		cancel()
 	}()
 	var wg sync.WaitGroup
+
+	//ensure that fatal errors, i.e. util.LogFatal(), shuts the application down
+	//cleanly (servers esp. need to resign from the leader election explicitly to
+	//minimize downtime)
+	exitCode := 0
+	util.TerminateHook = func() {
+		util.LogInfo("Shutting down because of previous fatal error...")
+		cancel()
+		exitCode = 1
+		wg.Wait()
+	}
 
 	//on servers, connect to etcd cluster (and check if that works before doing
 	//anything else)
@@ -88,4 +100,5 @@ func main() {
 
 	<-ctx.Done()
 	wg.Wait()
+	os.Exit(exitCode)
 }

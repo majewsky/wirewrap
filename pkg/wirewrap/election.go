@@ -100,7 +100,7 @@ func GoElectLeader(ctx context.Context, wg *sync.WaitGroup, cfg config.WirewrapS
 		for ctx.Err() == nil {
 			util.LogInfo("Campaigning for %s", ownPublicKey)
 			err := election.Campaign(ctx, ownPublicKey)
-			if err != nil {
+			if err != nil && err != ctx.Err() {
 				util.LogFatal("error while trying to participate in leader election: " + err.Error())
 				continue
 			}
