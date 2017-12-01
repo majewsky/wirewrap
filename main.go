@@ -19,13 +19,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"os"
+	"os/exec"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/majewsky/wirewrap/pkg/config"
 	"github.com/majewsky/wirewrap/pkg/util"
+	"github.com/majewsky/wirewrap/pkg/wirewrap"
 )
 
 func main() {
@@ -47,7 +51,41 @@ func main() {
 		<-sigc
 		cancel()
 	}()
+	var wg sync.WaitGroup
 
-	_ = cfg
+	//on servers, connect to etcd cluster (and check if that works before doing
+	//anything else)
+	if cfg.Wirewrap.ID != "" {
+		//determine our own public key to participate in a leader election
+		cmd := exec.Command("wg", "pubkey")
+		cmd.Stdin = bytes.NewReader([]byte(cfg.Interface.PrivateKey.String()))
+		var buf bytes.Buffer
+		cmd.Stdout = &buf
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		if err != nil {
+			util.LogFatal("exec `wg pubkey` failed: " + err.Error())
+		}
+
+		//check that the generated public key is valid
+		publicKey, err := config.KeyFromString(string(buf.Bytes()))
+		if err != nil {
+			util.LogFatal(err.Error())
+		}
+		electionChan, err := wirewrap.GoElectLeader(ctx, &wg, cfg.Wirewrap, publicKey.String())
+		if err != nil {
+			util.LogFatal(err.Error())
+		}
+
+		//DEBUG - TODO delete
+		go func() {
+			for result := range electionChan {
+				util.LogInfo("leader elected for %s: %s", result.ID, result.PublicKey)
+			}
+		}()
+
+	}
+
 	<-ctx.Done()
+	wg.Wait()
 }
