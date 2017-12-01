@@ -11,6 +11,11 @@ TESTPKGS := $(shell go list -f '{{if .TestGoFiles}}{{.ImportPath}}{{end}}' $(PKG
 # which packages to measure coverage for?
 COVERPKGS := $(shell go list $(PKG)/pkg/... | grep -vw vendor)
 
+# down below, I need to substitute spaces with commas; because of the syntax,
+# I have to get these separators from variables
+space := $(null) $(null)
+comma := ,
+
 all: FORCE
 	$(GO) install $(GO_BUILDFLAGS) -ldflags '$(GO_LDFLAGS)' '$(PKG)'
 
