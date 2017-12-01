@@ -19,7 +19,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"os/exec"
@@ -41,6 +40,22 @@ func main() {
 	cfg, err := config.FromFile(os.Args[1])
 	if err != nil {
 		util.LogFatal(err.Error())
+	}
+
+	//determine our own public key
+	{
+		publicKeyStr, err := util.CollectStdout(
+			exec.Command("wg", "pubkey"),
+			cfg.Interface.PrivateKey.String(),
+		)
+		if err != nil {
+			util.LogFatal(err.Error())
+		}
+		publicKey, err := config.KeyFromString(publicKeyStr)
+		if err != nil {
+			util.LogFatal(err.Error())
+		}
+		cfg.Interface.PublicKey = *publicKey
 	}
 
 	//standard incantation for responding to interrupt signals
@@ -65,26 +80,13 @@ func main() {
 		wg.Wait()
 	}
 
-	//on servers, connect to etcd cluster (and check if that works before doing
-	//anything else)
-	if cfg.Wirewrap.ID != "" {
-		//determine our own public key to participate in a leader election
-		cmd := exec.Command("wg", "pubkey")
-		cmd.Stdin = bytes.NewReader([]byte(cfg.Interface.PrivateKey.String()))
-		var buf bytes.Buffer
-		cmd.Stdout = &buf
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		if err != nil {
-			util.LogFatal("exec `wg pubkey` failed: " + err.Error())
-		}
+	//TODO start the worker who controls Wireguard
 
-		//check that the generated public key is valid
-		publicKey, err := config.KeyFromString(string(buf.Bytes()))
-		if err != nil {
-			util.LogFatal(err.Error())
-		}
-		electionChan, err := wirewrap.GoElectLeader(ctx, &wg, cfg.Wirewrap, publicKey.String())
+	//TODO start the workers who query servers for the current leader
+
+	//on servers, connect to etcd cluster and participate in leader election
+	if cfg.Wirewrap.ID != "" {
+		electionChan, err := wirewrap.GoElectLeader(ctx, &wg, cfg.Wirewrap, cfg.Interface.PublicKey.String())
 		if err != nil {
 			util.LogFatal(err.Error())
 		}
@@ -95,7 +97,6 @@ func main() {
 				util.LogInfo("leader elected for %s: %s", result.ID, result.PublicKey)
 			}
 		}()
-
 	}
 
 	<-ctx.Done()
