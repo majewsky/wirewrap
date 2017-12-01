@@ -20,25 +20,23 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/majewsky/wirewrap/pkg/config"
+	"github.com/majewsky/wirewrap/pkg/util"
 )
 
 func main() {
 	if len(os.Args) != 2 {
-		fmt.Fprintln(os.Stderr, "usage: wirewrap <config-file>")
-		os.Exit(1)
+		util.LogFatal("usage: wirewrap <config-file>")
 	}
 
 	//read configuration file
 	cfg, err := config.FromFile(os.Args[1])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err.Error())
-		os.Exit(1)
+		util.LogFatal(err.Error())
 	}
 
 	//standard incantation for responding to interrupt signals
