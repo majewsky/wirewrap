@@ -44,7 +44,7 @@ func (p KeyPair) EncodeToOpenSSHPrivateKey(comment string) string {
 		comment = "wirewrap"
 	}
 	out := base64.StdEncoding.EncodeToString(sshEncodePrivateKey(p, comment))
-	return "-----BEGIN OPENSSH PRIVATE KEY-----\n" + out + "\n-----END OPENSSH PRIVATE KEY-----\n"
+	return "-----BEGIN OPENSSH PRIVATE KEY-----\n" + wrapAtColumn70(out) + "\n-----END OPENSSH PRIVATE KEY-----\n"
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -116,10 +116,19 @@ func sshEncodeKeypair(pair KeyPair, comment string) []byte {
 	buf.WriteFieldString(comment)
 
 	//pad to 8-byte boundary
-	var padByte byte = 0
+	var padByte byte
 	for buf.Len()%8 != 0 {
 		padByte++
 		buf.WriteByte(padByte)
 	}
 	return buf.Bytes()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+func wrapAtColumn70(text string) string {
+	if len(text) <= 70 {
+		return text
+	}
+	return text[0:70] + "\n" + wrapAtColumn70(text[70:])
 }
