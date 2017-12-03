@@ -21,7 +21,6 @@ package main
 import (
 	"context"
 	"os"
-	"os/exec"
 	"os/signal"
 	"sync"
 	"syscall"
@@ -40,22 +39,6 @@ func main() {
 	cfg, err := config.FromFile(os.Args[1])
 	if err != nil {
 		util.LogFatal(err.Error())
-	}
-
-	//determine our own public key
-	{
-		publicKeyStr, err := util.CollectStdout(
-			exec.Command("wg", "pubkey"),
-			cfg.Interface.PrivateKey.String(),
-		)
-		if err != nil {
-			util.LogFatal(err.Error())
-		}
-		publicKey, err := config.KeyFromString(publicKeyStr)
-		if err != nil {
-			util.LogFatal(err.Error())
-		}
-		cfg.Interface.PublicKey = *publicKey
 	}
 
 	//standard incantation for responding to interrupt signals
@@ -86,7 +69,7 @@ func main() {
 
 	//on servers, connect to etcd cluster and participate in leader election
 	if cfg.Wirewrap.ID != "" {
-		electionChan, err := wirewrap.GoElectLeader(ctx, &wg, cfg.Wirewrap, cfg.Interface.PublicKey.String())
+		electionChan, err := wirewrap.GoElectLeader(ctx, &wg, cfg.Wirewrap, cfg.Interface.KeyPair.PublicKey.String())
 		if err != nil {
 			util.LogFatal(err.Error())
 		}

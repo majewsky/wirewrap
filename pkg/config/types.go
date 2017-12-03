@@ -22,8 +22,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/majewsky/wirewrap/pkg/util"
 )
 
 //Address is an IP address, optionally within a network.
@@ -104,4 +107,29 @@ func KeyFromString(text string) (*Key, error) {
 //String returns the base64 representation of this key.
 func (k Key) String() string {
 	return base64.StdEncoding.EncodeToString(k[:])
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+//KeyPair represents a pair of public and private key.
+type KeyPair struct {
+	PrivateKey Key
+	PublicKey  Key
+}
+
+//KeyPairFromPrivateKey initializes a KeyPair from the private key. The public
+//key is found with `wg pubkey`.
+func KeyPairFromPrivateKey(privateKey Key) (*KeyPair, error) {
+	publicKeyStr, err := util.CollectStdout(
+		exec.Command("wg", "pubkey"),
+		privateKey.String(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	publicKey, err := KeyFromString(publicKeyStr)
+	if err != nil {
+		return nil, err
+	}
+	return &KeyPair{privateKey, *publicKey}, err
 }

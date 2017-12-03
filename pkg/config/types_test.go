@@ -45,11 +45,11 @@ func TestKeyToString(t *testing.T) {
 	//test that the following keys are not altered by parsing and successive
 	//deparsing
 	samples := []string{
-		makeKey(1),
-		makeKey(2),
-		makeKey(3),
-		makeKey(4),
-		makeKey(5),
+		encodeKey(testKeysPublic[0]),
+		encodeKey(testKeysPublic[1]),
+		encodeKey(testKeysPublic[2]),
+		encodeKey(testKeysPublic[3]),
+		encodeKey(testKeysPublic[4]),
 	}
 	for _, expected := range samples {
 		k, err := KeyFromString(expected)

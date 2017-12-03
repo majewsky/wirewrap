@@ -29,8 +29,7 @@ type Config struct {
 
 //InterfaceSection holds the data from the [Interface] section of the config file.
 type InterfaceSection struct {
-	PrivateKey Key
-	PublicKey  Key
+	KeyPair    KeyPair
 	ListenPort *uint16 //nil = choose randomly
 	FwMark     uint32  //0 = off
 	Addresses  []Address

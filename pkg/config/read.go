@@ -47,23 +47,19 @@ func FromString(text []byte) (cfg Config, errs []error) {
 
 	//initial state
 	currentSection := noSection
-	var requiredKey *Key
+	var hasRequiredKey bool
 
 	//this function is called at the end of a section, and checks if all required fields in this section have been given
 	endCurrentSection := func(lineNo int) {
 		switch currentSection {
 		case interfaceSection:
-			if requiredKey == nil {
+			if !hasRequiredKey {
 				report(lineNo, errors.New("expected PrivateKey, found end of [Interface] section"))
-			} else {
-				cfg.Interface.PrivateKey = *requiredKey
 			}
 		case peerSection:
 			idx := len(cfg.Peers) - 1
-			if requiredKey == nil {
+			if !hasRequiredKey {
 				report(lineNo, errors.New("expected PublicKey, found end of [Peer] section"))
-			} else {
-				cfg.Peers[idx].PublicKey = *requiredKey
 			}
 			if len(cfg.Peers[idx].AllowedIPs) == 0 {
 				report(lineNo, errors.New("expected AllowedIPs, found end of [Peer] section"))
@@ -76,7 +72,7 @@ func FromString(text []byte) (cfg Config, errs []error) {
 				report(lineNo, errors.New("expected EtcdEndpoints, found end of [Wirewrap] section"))
 			}
 		}
-		requiredKey = nil
+		hasRequiredKey = false //reset for next section
 		currentSection = noSection
 	}
 
@@ -132,11 +128,17 @@ func FromString(text []byte) (cfg Config, errs []error) {
 		peerIdx := len(cfg.Peers) - 1
 		var err error
 		switch string(currentSection) + "/" + key {
-		case "Interface/PrivateKey", "Peer/PublicKey":
-			requiredKey, err = KeyFromString(value)
+		case "Interface/PrivateKey":
+			hasRequiredKey = true
+			privateKey, err := KeyFromString(value)
 			report(lineNo, err)
-			if requiredKey == nil {
-				requiredKey = &Key{} // don't report PrivateKey as missing
+			if privateKey != nil {
+				keypair, err := KeyPairFromPrivateKey(*privateKey)
+				if err != nil {
+					report(lineNo, fmt.Errorf("cannot derive public key for given private key: %s", err.Error()))
+				} else {
+					cfg.Interface.KeyPair = *keypair
+				}
 			}
 
 		case "Interface/ListenPort":
@@ -184,6 +186,14 @@ func FromString(text []byte) (cfg Config, errs []error) {
 
 		case "Peer/WirewrapID":
 			cfg.Peers[peerIdx].WirewrapID = value
+
+		case "Peer/PublicKey":
+			hasRequiredKey = true
+			key, err := KeyFromString(value)
+			report(lineNo, err)
+			if key != nil {
+				cfg.Peers[peerIdx].PublicKey = *key
+			}
 
 		case "Peer/PresharedKey":
 			cfg.Peers[peerIdx].PresharedKey, err = KeyFromString(value)
