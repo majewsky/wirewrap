@@ -1,3 +1,7 @@
+# Archived
+
+This didn't go much beyond the planning stage, and I don't plan to continue working on it.
+
 # Wirewrap
 
 Wirewrap extends [WireGuard](https://wireguard.com) with fault-tolerancy. When run on a set of servers, it will elect a
